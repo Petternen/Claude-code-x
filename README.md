@@ -34,3 +34,23 @@ Mikrofon krever HTTPS – GitHub Pages gir det automatisk.
 ```sh
 cd app && python3 -m http.server 8000   # åpne http://localhost:8000
 ```
+
+## Tester
+```sh
+npm install && npx playwright install chromium   # første gang
+npm test            # alt (≈3 min)
+npm run test:unit   # 35 enhetstester (<1 s)
+npm run test:e2e    # 57 nettlesertester med simulert tale og fingertegning
+```
+| Fil | Dekker |
+|---|---|
+| `tests/unit/speech.test.mjs` | Norske tallord (0–100, *syv/sju*, *fem og tjue*), bedømming av tale |
+| `tests/unit/state.test.mjs` | XP-kurve, nivåhopp, maks nivå 60 |
+| `tests/unit/data.test.mjs` | Alderstrinn, bokstavmaler, ord, 59 skatter, sjeldenhet |
+| `tests/unit/math.test.mjs` | 4 000 oppgaver per alder: riktige svar, tallområder, bildestøtte |
+| `tests/e2e/math.test.mjs` | Tale (riktig/feil/stillhet/blokkert/ikke støttet), tastatur, rekke-bonus, runde, nivå opp, aldersgating |
+| `tests/e2e/write.test.mjs` | Alle 39 tegn sporbare, feil start/retning/rekkefølge, juks på O, presisjon per alder, ord og navn |
+| `tests/e2e/app.test.mjs` | Profiler, hjem, samling og utstyr, sletting, ødelagt lagring, HTML-injeksjon |
+| `tests/e2e/layout-pwa.test.mjs` | 5 skjermstørrelser, manifest, service worker, offline, tilgjengelighet |
+
+Testene kjøres automatisk på hver PR (`.github/workflows/tests.yml`).

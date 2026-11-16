@@ -280,8 +280,8 @@ SCREENS.math = () => {
   const setMic = st => {
     mic.dataset.state = st;
     const msg = { listening: 'Jeg lytter … si svaret!', idle: 'Trykk på mikrofonen og si svaret', blocked: 'Mikrofonen er blokkert – gi tilgang i nettleseren', unsupported: '' }[st];
-    if (msg != null && st !== 'listening') heard.innerHTML = `<span class="hint">${msg}</span>`;
-    if (st === 'listening') heard.innerHTML = `<span class="hint">${msg}</span>`;
+    // Det barnet sist sa blir stående mens vi lytter på nytt (nyttig for voksne)
+    if (msg && !(st === 'listening' && $('.said', heard))) heard.innerHTML = `<span class="hint">${msg}</span>`;
   };
   const slot = () => $('.answer-slot', body);
 
@@ -394,12 +394,14 @@ SCREENS.math = () => {
       s.classList.add('reveal');
       $$('.progress i')[i].classList.add('miss');
       i++;
-      await speak(`Svaret er ${q.answer}. Det klarer du neste gang!`);
+      await Promise.all([speak(`Svaret er ${q.answer}. Det klarer du neste gang!`), wait(1500)]);
       await grantXp(2, s);
       await wait(400);
       return next();
     }
-    await speak(tries === 1 ? `Du sa ${n}. Nesten! Prøv igjen.` : `Ikke helt. Hør godt etter: ${q.say}`);
+    // Minstetid så markeringen synes også når enheten mangler norsk stemme
+    await Promise.all([speak(tries === 1 ? `Du sa ${n}. Nesten! Prøv igjen.` : `Ikke helt. Hør godt etter: ${q.say}`), wait(1000)]);
+    if (!alive) return;
     s.textContent = '?';
     s.classList.remove('wrong');
     busy = false;
@@ -430,7 +432,7 @@ SCREENS.math = () => {
     if (!P.seenMicTip && canListen) {
       P.seenMicTip = true; persist();
       body.innerHTML = '<div class="tip"><span class="mic-demo">🎤</span><p>Når mikrofonen blinker, sier du svaret høyt!</p></div>';
-      await speak('Når mikrofonen blinker, sier du svaret høyt!');
+      await Promise.all([speak('Når mikrofonen blinker, sier du svaret høyt!'), wait(2500)]);
     }
     next();
   };
@@ -665,7 +667,7 @@ SCREENS.collection = () => {
   }
 })();
 
-if ('serviceWorker' in navigator && location.protocol === 'https:') {
+if ('serviceWorker' in navigator && window.isSecureContext) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 
