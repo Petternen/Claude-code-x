@@ -1,0 +1,18 @@
+{
+  "name": "Stjerneskolen – matte og skriving",
+  "short_name": "Stjerneskolen",
+  "description": "Matte og skriving for barn 3–6 år",
+  "lang": "nb",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#d9b3ff",
+  "theme_color": "#8f72ff",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}
