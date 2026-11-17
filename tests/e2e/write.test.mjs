@@ -223,3 +223,28 @@ test('sporet fremgang lagres og vises etter omstart', async () => {
   assert.ok(await page.$eval('.chip[data-i="23"]', e => e.classList.contains('done')), 'X har stjerne');
   await page.ctx.close();
 });
+
+test('retningspiler: hvert strøk over 40 enheter har minst én pil, og ingen pil står nær et hjørne', async () => {
+  const page = await openWrite();
+  const problems = [];
+  for (const [mode, keys] of [['letters', 'ABCDEFGHIJKLMNOPQRSTUVWXYZÆØÅ'], ['digits', '0123456789']]) {
+    if (mode === 'digits') await jump(page, 'Tab');
+    for (const k of keys) {
+      await jump(page, k.toLowerCase());
+      let strokes = await strokePoints(page, 2);
+      for (let si = 0; si < strokes.length; si++) {
+        const info = await page.evaluate(() => {
+          const svg = document.querySelector('svg.trace');
+          const path = svg.querySelector('.tube path.active');
+          return { len: path.getTotalLength(), arrows: svg.querySelectorAll('.hint .arrow').length };
+        });
+        if (info.len > 40 && info.arrows === 0) problems.push(`${k} strøk ${si + 1}`);
+        strokes = await strokePoints(page);
+        await drawPath(page, strokes[si]);
+      }
+      await closeLevelUps(page);
+    }
+  }
+  assert.deepEqual(problems, [], 'strøk uten piler');
+  await page.ctx.close();
+});

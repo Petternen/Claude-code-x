@@ -71,12 +71,9 @@ export class Tracer {
     const s = this.strokes[this.cur];
     s.tube.classList.add('active');
     el('path', { d: s.d, class: 'center' }, g);
-    // Retningspiler langs streken
-    const every = Math.max(6, Math.round(24 / STEP));
-    for (let i = every; i < s.pts.length - 4; i += every) {
-      const p = s.pts[i], q = s.pts[Math.min(i + 2, s.pts.length - 1)];
-      const a = Math.atan2(q.y - p.y, q.x - p.x) * 180 / Math.PI;
-      el('path', { d: 'M-4 -5 L3 0 L-4 5', class: 'arrow', transform: `translate(${p.x} ${p.y}) rotate(${a})` }, g);
+    // Retningspiler langs streken – jevnt fordelt, men aldri nær hjørner
+    for (const { x, y, a } of arrowSpots(s.pts)) {
+      el('path', { d: 'M-4 -5 L3 0 L-4 5', class: 'arrow', transform: `translate(${x} ${y}) rotate(${a})` }, g);
     }
     const st = s.pts[0], en = s.pts[s.pts.length - 1];
     if (dist(st, en) > 8) el('circle', { cx: en.x, cy: en.y, r: 4, class: 'end' }, g);
@@ -213,6 +210,33 @@ export class Tracer {
 
   reset() { this.svg.classList.remove('complete'); this.load(this.ch); }
   destroy() { this.cancelDemo(); }
+}
+
+/**
+ * Finner plasser for retningspiler langs en strek (punkter med STEP avstand).
+ * Et hjørne er en brå retningsendring (> ~17° over 3+3 enheter), i motsetning
+ * til en kurve som svinger gradvis. Pilene holdes minst CLEAR enheter unna
+ * hjørner og ender, og minst GAP enheter fra hverandre.
+ */
+export function arrowSpots(pts, { gap = 22, clear = 12, cornerTurn = 0.3 } = {}) {
+  const n = pts.length, spots = [];
+  const ang = (i, j) => Math.atan2(pts[j].y - pts[i].y, pts[j].x - pts[i].x);
+  const turn = (i, w) => {
+    const d = Math.abs(ang(i - w, i) - ang(i, i + w)) % (2 * Math.PI);
+    return d > Math.PI ? 2 * Math.PI - d : d;
+  };
+  const blocked = [0, n - 1];
+  for (let i = 1; i < n - 1; i++) if (turn(i, 1) > cornerTurn) blocked.push(i);
+  const near = i => blocked.some(c => Math.abs(c - i) * STEP < clear);
+  let last = -Infinity;
+  for (let i = 1; i < n - 1; i++) {
+    if (near(i) || (i - last) * STEP < gap) continue;
+    // Også synlig avstand: i trange V-er (W) kan bena ligge tett på skjermen
+    if (spots.some(q => Math.hypot(q.x - pts[i].x, q.y - pts[i].y) < gap * 0.82)) continue;
+    spots.push({ x: pts[i].x, y: pts[i].y, a: ang(i - 1, i + 1) * 180 / Math.PI });
+    last = i;
+  }
+  return spots;
 }
 
 /** Gjør om et navn til tegn vi har sporingsmaler for (é → E osv.). */
