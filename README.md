@@ -12,6 +12,10 @@ Matte og skriving for barn 3–6 år. Ren web-app (PWA) – ingen bygging, virke
 - **Nivå 1–60** med eksponentiell XP-kurve (`60 · 1,08^(nivå−1)`), ca. 6 måneder til nivå 60 ved 15 min/dag.
   Hvert nivå gir en skatt: 47 matteskatter + 12 utstyr til figuren (hatt, venn, glød hvert 5. nivå).
 - **Flere profiler** lagret lokalt på enheten (localStorage).
+- **Nettbrett-oppsett (iPad liggende):** delt skjerm automatisk på brede skjermer.
+  Matte: stor oppgave til venstre, barnets figur (jubler, blir lei seg, danser) med mikrofon til høyre.
+  Skriving: stor tegneflate til venstre, eksempelbilde og hele alfabetet som tavle til høyre.
+  Mobil og iPad stående beholder det enkle oppsettet.
 
 ## Tastatur
 | Skjerm | Taster |
@@ -39,8 +43,8 @@ cd app && python3 -m http.server 8000   # åpne http://localhost:8000
 ```sh
 npm install && npx playwright install chromium   # første gang
 npm test            # alt (≈3 min)
-npm run test:unit   # 35 enhetstester (<1 s)
-npm run test:e2e    # 57 nettlesertester med simulert tale og fingertegning
+npm run test:unit   # 39 enhetstester (<1 s)
+npm run test:e2e    # 68 nettlesertester med simulert tale og fingertegning
 ```
 | Fil | Dekker |
 |---|---|
@@ -51,6 +55,7 @@ npm run test:e2e    # 57 nettlesertester med simulert tale og fingertegning
 | `tests/e2e/math.test.mjs` | Tale (riktig/feil/stillhet/blokkert/ikke støttet), tastatur, rekke-bonus, runde, nivå opp, aldersgating |
 | `tests/e2e/write.test.mjs` | Alle 39 tegn sporbare, feil start/retning/rekkefølge, juks på O, presisjon per alder, ord og navn |
 | `tests/e2e/app.test.mjs` | Profiler, hjem, samling og utstyr, sletting, ødelagt lagring, HTML-injeksjon |
+| `tests/e2e/tablet.test.mjs` | iPad mini/Air/Pro liggende, figurens reaksjoner, snu nettbrettet |
 | `tests/e2e/layout-pwa.test.mjs` | 5 skjermstørrelser, manifest, service worker, offline, tilgjengelighet |
 
 Testene kjøres automatisk på hver PR (`.github/workflows/tests.yml`).
