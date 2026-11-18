@@ -35,13 +35,13 @@ for (const [name, viewport] of Object.entries(VIEWPORTS)) {
     assert.ok(await inView(page, '.lvl-badge'), 'nivåmerke');
     assert.ok(await inView(page, '.t-math'), 'matte-flis');
     // Matte
-    await page.click('.t-math');
+    await page.keyboard.press('m');
     await waitListening(page);
     assert.ok(await noHScroll(page), 'matte');
     for (const sel of ['.mic', '.answer-slot', '.q-card', '[data-act=repeat]']) assert.ok(await inView(page, sel), `matte: ${sel}`);
     await page.keyboard.press('Escape');
     // Skriving
-    await page.click('.t-write');
+    await page.keyboard.press('s');
     await page.waitForSelector('svg.trace .tube path');
     assert.ok(await noHScroll(page), 'skriving');
     assert.ok(await inView(page, 'svg.trace'), 'tegneflate');
@@ -50,7 +50,7 @@ for (const [name, viewport] of Object.entries(VIEWPORTS)) {
     assert.ok(await inView(page, '.chip.now'), 'valgt brikke');
     await page.click('[data-act=back]');
     // Samling
-    await page.click('.t-coll');
+    await page.keyboard.press('c');
     await page.waitForSelector('.art-grid');
     assert.ok(await noHScroll(page), 'samling');
     const canScroll = await page.$eval('.coll', e => e.scrollHeight > e.clientHeight);
@@ -71,7 +71,7 @@ for (const [name, viewport] of Object.entries(VIEWPORTS)) {
 
 test('mobil med ekte enhetsprofil (berøring) – sporing med touch', async () => {
   const page = await newPage(base, { device: devices['iPhone 13'], profile: makeProfile({ level: 55 }) });
-  await page.click('.t-write');
+  await page.keyboard.press('s');
   await page.waitForSelector('svg.trace .tube path');
   assert.equal(await page.$eval('svg.trace', e => getComputedStyle(e).touchAction), 'none', 'siden scroller ikke mens man tegner');
   noErrors(page);
@@ -80,7 +80,7 @@ test('mobil med ekte enhetsprofil (berøring) – sporing med touch', async () =
 
 test('nivå-opp-skjermen får plass på liten mobil', async () => {
   const page = await newPage(base, { viewport: VIEWPORTS['iPhone SE'], profile: makeProfile({ xp: 59 }) });
-  await page.click('.t-math');
+  await page.keyboard.press('m');
   const q = await waitListening(page);
   await page.evaluate(n => window.__say(String(n)), q.answer);
   await page.waitForSelector('[data-close]:not([disabled])');
@@ -126,7 +126,7 @@ test('offline: appen starter og fungerer uten nett etter første besøk', async 
   await page.ctx.setOffline(true);
   await page.reload();
   await page.waitForSelector('.tiles');
-  await page.keyboard.press('1');
+  await page.keyboard.press('m');
   await waitListening(page);
   await page.ctx.setOffline(false);
   noErrors(page);
@@ -143,7 +143,7 @@ test('HTML: språk, viewport og tittel', async () => {
 
 test('alle ikonknapper har tilgjengelig navn', async () => {
   const page = await newPage(base, { profile: makeProfile() });
-  for (const k of ['1', '2', '3']) {
+  for (const k of ['m', 'b', 's', 'l', 'h', 't', 'c']) {
     await page.keyboard.press(k);
     await page.waitForTimeout(300);
     const unnamed = await page.$$eval('button.icon-btn, button.mic', bs =>

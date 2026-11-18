@@ -10,7 +10,7 @@ after(async () => { await closeBrowser(); srv.server.close(); });
 const openWrite = async (over = {}) => {
   // Høyt nivå: unngår nivå-feiring midt i testene
   const page = await newPage(base, { profile: makeProfile({ level: 55, ...over }) });
-  await page.keyboard.press('2');
+  await page.keyboard.press('s');
   await page.waitForSelector('svg.trace .tube path');
   return page;
 };
@@ -45,7 +45,7 @@ test('alle 29 bokstaver og 10 tall kan spores ferdig', async () => {
 
 test('alle tegn kan spores også på liten mobilskjerm (iPhone SE)', async () => {
   const page = await newPage(base, { profile: makeProfile({ level: 55 }), viewport: { width: 375, height: 667 } });
-  await page.keyboard.press('2');
+  await page.keyboard.press('s');
   await page.waitForSelector('svg.trace .tube path');
   for (const k of 'AMWØ8') {
     if (k === '8') await jump(page, 'Tab');
@@ -218,7 +218,7 @@ test('sporet fremgang lagres og vises etter omstart', async () => {
   await traceAll(page);
   await page.waitForTimeout(100);
   await page.reload();
-  await page.keyboard.press('2');
+  await page.keyboard.press('s');
   await page.waitForSelector('.chip');
   assert.ok(await page.$eval('.chip[data-i="23"]', e => e.classList.contains('done')), 'X har stjerne');
   await page.ctx.close();

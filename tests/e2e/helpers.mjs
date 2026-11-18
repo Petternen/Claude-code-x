@@ -42,11 +42,18 @@ export async function closeContexts() { for (const c of openContexts) await c.cl
  *  - window.__q = gjeldende matteoppgave
  * opts.recognition: 'fake' (standard) | 'none'
  */
-export async function newPage(base, { profile, storage, recognition = 'fake', viewport = { width: 1024, height: 768 }, device, blockFonts = true } = {}) {
+export async function newPage(base, { profile, storage, st, clock = false, recognition = 'fake', viewport = { width: 1024, height: 768 }, device, blockFonts = true } = {}) {
   const b = await getBrowser();
   const ctx = await b.newContext(device ? { ...device } : { viewport, hasTouch: true });
   openContexts.add(ctx);
   if (blockFonts) await ctx.route(/fonts\.(googleapis|gstatic)\.com/, r => r.abort());
+  // Skjermtid: egne verdier per test (standard: av, så lange tester ikke låses)
+  await ctx.addInitScript(st => {
+    if (!sessionStorage.getItem('__seededST')) {
+      sessionStorage.setItem('__seededST', '1');
+      localStorage.setItem('stjerneskolen.screentime', JSON.stringify(st));
+    }
+  }, st ?? { enabled: false });
   await ctx.addInitScript(({ recognition, seed }) => {
     Object.defineProperty(window, 'speechSynthesis', { value: undefined, configurable: true });
     window.__qs = [];
@@ -79,6 +86,7 @@ export async function newPage(base, { profile, storage, recognition = 'fake', vi
     }
   }, { recognition, seed: storage ?? (profile ? JSON.stringify({ current: profile.id, profiles: [profile] }) : null) });
   const page = await ctx.newPage();
+  if (clock) await page.clock.install();
   page.errors = [];
   page.on('pageerror', e => page.errors.push(e.message));
   page.on('console', m => { if (m.type() === 'error' && !/fonts\.(googleapis|gstatic)|ERR_FAILED/.test(m.text())) page.errors.push(m.text()); });

@@ -99,7 +99,7 @@ test('hjem: talltaster åpner moduler, + og − endrer alder innenfor grensene',
   assert.equal(await page.$eval('.age-pill.sel', e => e.dataset.v), '3');
   await page.click('[data-act=age][data-v="4.5"]');
   assert.equal((await prof(page)).age, 4.5);
-  for (const [k, sel] of [['2', 'svg.trace'], ['3', '.art-grid'], ['1', '.q-card']]) {
+  for (const [k, sel] of [['s', 'svg.trace'], ['c', '.art-grid'], ['m', '.q-card'], ['b', '.shop-body'], ['l', '.read-word'], ['h', '.mem-grid'], ['t', 'canvas.paint']]) {
     await page.keyboard.press(k);
     await page.waitForSelector(sel);
     await page.keyboard.press('Escape');
@@ -124,7 +124,7 @@ test('slett spiller: avbryt beholder, bekreft sletter', async () => {
 test('samling: låste kort, bruk/ta av utstyr, avatar oppdateres', async () => {
   const items = Array.from({ length: 9 }, (_, i) => 'a' + (i + 2)); // nivå 2–10
   const page = await newPage(base, { profile: makeProfile({ level: 10, items }) });
-  await page.keyboard.press('3');
+  await page.keyboard.press('c');
   await page.waitForSelector('.art-grid');
   assert.match(await page.textContent('.coll-head'), /9 av 59/);
   assert.equal(await page.$$eval('.art-card.locked', e => e.length), 50);
@@ -145,7 +145,7 @@ test('samling: låste kort, bruk/ta av utstyr, avatar oppdateres', async () => {
 test('alle auraer og hatter rendres uten feil', async () => {
   const items = Array.from({ length: 59 }, (_, i) => 'a' + (i + 2));
   const page = await newPage(base, { profile: makeProfile({ level: 60, items, equipped: { hat: 'a50', pet: 'a55', aura: 'a60' } }) });
-  await page.keyboard.press('3');
+  await page.keyboard.press('c');
   await page.waitForSelector('.art-grid');
   assert.equal(await page.$$eval('.art-card.locked', e => e.length), 0);
   for (const id of ['a15', 'a30', 'a45', 'a60']) {
@@ -169,10 +169,10 @@ test('profil fra eldre versjon uten nye felt fungerer', async () => {
   const old = makeProfile();
   delete old.traced; delete old.seenMicTip;
   const page = await newPage(base, { profile: old });
-  await page.keyboard.press('2');
+  await page.keyboard.press('s');
   await page.waitForSelector('svg.trace .tube path');
   await page.keyboard.press('Escape');
-  await page.keyboard.press('1');
+  await page.keyboard.press('m');
   await page.waitForSelector('.q-card');
   noErrors(page);
   await page.ctx.close();
