@@ -19,7 +19,7 @@ const visible = (page, sel) => page.$eval(sel, e => { const r = e.getBoundingCli
 for (const [name, viewport] of Object.entries(IPADS)) {
   test(`${name} liggende: matte med oppgave venstre og figur + mikrofon høyre`, async () => {
     const page = await newPage(base, { viewport, profile: makeProfile({ level: 50 }) });
-    await page.keyboard.press('1');
+    await page.keyboard.press('m');
     await waitListening(page);
     const q = await box(page, '.q-card'), side = await box(page, '.side');
     assert.ok(q.r <= side.l, 'oppgaven står til venstre for sidekolonnen');
@@ -34,7 +34,7 @@ for (const [name, viewport] of Object.entries(IPADS)) {
 
   test(`${name} liggende: skriving med stor tegneflate og hele alfabetet synlig`, async () => {
     const page = await newPage(base, { viewport, profile: makeProfile({ level: 50 }) });
-    await page.keyboard.press('2');
+    await page.keyboard.press('s');
     await page.waitForSelector('svg.trace .tube path');
     const card = await box(page, '.trace-card'), side = await box(page, '.write-side');
     assert.ok(card.r <= side.l, 'tegneflaten til venstre');
@@ -54,7 +54,7 @@ for (const [name, viewport] of Object.entries(IPADS)) {
 
 test('figuren reagerer: lytter, jubler ved riktig, lei seg ved feil, danser ved 3 på rad', async () => {
   const page = await newPage(base, { viewport: IPADS['iPad Air'], profile: makeProfile({ level: 50 }) });
-  await page.keyboard.press('1');
+  await page.keyboard.press('m');
   let q = await waitListening(page);
   assert.ok(await page.$('.buddy.listen'), 'lytter');
   await page.evaluate(n => window.__say(String(n + 1)), q.answer);
@@ -76,7 +76,7 @@ test('figuren reagerer: lytter, jubler ved riktig, lei seg ved feil, danser ved 
 
 test('figuren får nytt utstyr og danser etter nivå opp', async () => {
   const page = await newPage(base, { viewport: IPADS['iPad Air'], profile: makeProfile({ level: 4, xp: 80, items: ['a2', 'a3', 'a4'] }) });
-  await page.keyboard.press('1');
+  await page.keyboard.press('m');
   const q = await waitListening(page);
   assert.equal(await page.$('.buddy .av-pet'), null);
   await page.evaluate(n => window.__say(String(n)), q.answer);
@@ -90,13 +90,13 @@ test('figuren får nytt utstyr og danser etter nivå opp', async () => {
 test('mobil og iPad stående beholder det enkle oppsettet (figuren skjult)', async () => {
   for (const viewport of [{ width: 390, height: 844 }, { width: 820, height: 1180 }]) {
     const page = await newPage(base, { viewport, profile: makeProfile({ level: 50 }) });
-    await page.keyboard.press('1');
+    await page.keyboard.press('m');
     await waitListening(page);
     assert.equal(await page.$eval('.buddy', e => getComputedStyle(e).display), 'none');
     const q = await box(page, '.q-card'), mic = await box(page, '.mic');
     assert.ok(mic.t >= q.b, 'mikrofonen under oppgaven');
     await page.keyboard.press('Escape');
-    await page.keyboard.press('2');
+    await page.keyboard.press('s');
     await page.waitForSelector('svg.trace .tube path');
     const strip = await page.$eval('.strip', e => getComputedStyle(e).display);
     assert.equal(strip, 'flex', 'bokstavstripe som før');
@@ -108,7 +108,7 @@ test('mobil og iPad stående beholder det enkle oppsettet (figuren skjult)', asy
 
 test('snu nettbrettet: oppsettet bytter uten omstart', async () => {
   const page = await newPage(base, { viewport: IPADS['iPad Air'], profile: makeProfile({ level: 50 }) });
-  await page.keyboard.press('2');
+  await page.keyboard.press('s');
   await page.waitForSelector('svg.trace .tube path');
   assert.equal(await page.$eval('.strip', e => getComputedStyle(e).display), 'grid');
   await page.setViewportSize({ width: 820, height: 1180 });

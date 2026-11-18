@@ -1,8 +1,9 @@
 // Offline-støtte: viser lagret versjon umiddelbart og oppdaterer i bakgrunnen.
-const CACHE = 'stjerneskolen-v1';
+const CACHE = 'stjerneskolen-v2';
 const ASSETS = [
   './', 'index.html', 'style.css', 'manifest.webmanifest',
   'js/main.js', 'js/data.js', 'js/state.js', 'js/speech.js', 'js/fx.js', 'js/sfx.js', 'js/math.js', 'js/write.js',
+  'js/content.js', 'js/listen.js', 'js/read.js', 'js/shop.js', 'js/memory.js', 'js/draw.js', 'js/screentime.js',
   'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png',
 ];
 

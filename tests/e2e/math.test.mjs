@@ -9,7 +9,7 @@ after(async () => { await closeBrowser(); srv.server.close(); });
 
 const openMath = async ({ profile, ...opts } = {}) => {
   const page = await newPage(base, { ...opts, profile: makeProfile(profile) });
-  await page.keyboard.press('1');
+  await page.keyboard.press('m');
   return page;
 };
 const slot = page => page.$eval('.answer-slot', e => ({ text: e.textContent, cls: e.className }));

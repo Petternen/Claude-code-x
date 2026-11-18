@@ -5,6 +5,11 @@ import { burst, confetti, fireworks, floatText, centerOf } from './fx.js';
 import { sfx } from './sfx.js';
 import { makeQuestion } from './math.js';
 import { Tracer, toTraceable } from './write.js';
+import { readScreen } from './read.js';
+import { shopScreen } from './shop.js';
+import { memoryScreen } from './memory.js';
+import { drawScreen } from './draw.js';
+import { initScreenTime } from './screentime.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
@@ -22,6 +27,23 @@ const ageCfg = () => AGES.find(a => a.age === P.age) || AGES[0];
 const ageLabel = age => (AGES.find(a => a.age === age) || AGES[0]).label;
 const TOTAL_ART = ARTIFACTS.length;
 
+// ───────────────────────── Aktiviteter og grupper ─────────────────────────
+const ACTS = {
+  math:   { n: 'Matte', e: '🔢', s: 'Si svaret høyt', key: 'm', g: 'tall' },
+  shop:   { n: 'Butikk', e: '🛒', s: 'Betal og tell penger', key: 'b', g: 'tall' },
+  write:  { n: 'Skriving', e: '✏️', s: 'Tegn bokstaver', key: 's', g: 'bokstaver' },
+  read:   { n: 'Lesing', e: '📖', s: 'Les ord høyt', key: 'l', g: 'bokstaver' },
+  memory: { n: 'Huskespill', e: '🃏', s: 'Finn like par', key: 'h', g: 'lek' },
+  draw:   { n: 'Tegning', e: '🎨', s: 'Tegn og fargelegg', key: 't', g: 'lek' },
+};
+const GROUPS = {
+  tall:      { n: 'Tall', e: '🔢', s: 'Matte og butikk', cls: 't-math' },
+  bokstaver: { n: 'Bokstaver', e: '🔤', s: 'Skriving og lesing', cls: 't-write' },
+  lek:       { n: 'Lek', e: '🎲', s: 'Huskespill og tegning', cls: 't-play' },
+};
+const HOTKEYS = Object.fromEntries(Object.entries(ACTS).map(([id, a]) => [a.key, id]));
+const back = act => go('group', ACTS[act].g);
+
 // ───────────────────────── Ruting og input ─────────────────────────
 function go(name, ...args) {
   try { screen.cleanup?.(); } catch (e) { console.error(e); }
@@ -31,6 +53,7 @@ function go(name, ...args) {
 }
 
 document.addEventListener('keydown', e => {
+  if (ST.onKey(e)) return;
   if (overlayKey) { overlayKey(e); return; }
   if (e.target.matches?.('input') && !['Enter', 'Escape'].includes(e.key)) return;
   if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -226,13 +249,12 @@ SCREENS.create = () => {
 SCREENS.home = () => {
   app.innerHTML = `${hud()}<div class="screen home scroll">
     <div class="hello">${avatarHTML(P, 'xl')}<div><h1>Hei, ${esc(P.name)}!</h1><p>Hva vil du gjøre i dag?</p></div></div>
-    <div class="tiles">
-      <button class="tile t-math" data-act="math"><span class="tile-ico">🔢</span><b>Matte</b><small>Si svaret høyt</small><kbd>1</kbd></button>
-      <button class="tile t-write" data-act="write"><span class="tile-ico">✏️</span><b>Skriving</b><small>Tegn med fingeren</small><kbd>2</kbd></button>
-      <button class="tile t-coll" data-act="coll"><span class="tile-ico">🏆</span><b>Samling</b><small>${P.items.length} / ${TOTAL_ART} skatter</small><kbd>3</kbd></button>
+    <div class="tiles groups">
+      ${Object.entries(GROUPS).map(([id, g], k) => `<button class="tile ${g.cls}" data-act="group" data-v="${id}"><span class="tile-ico">${g.e}</span><b>${g.n}</b><small>${g.s}</small><kbd>${k + 1}</kbd></button>`).join('')}
+      <button class="tile t-coll" data-act="coll"><span class="tile-ico">🏆</span><b>Samling</b><small>${P.items.length} / ${TOTAL_ART} skatter</small><kbd>4</kbd></button>
     </div>
     <div class="age-row"><span>Alder <kbd>+</kbd><kbd>−</kbd></span><div class="age-pick">${agePills(P.age)}</div></div>
-    <button class="link" data-act="delete">Slett spiller</button>
+    <div class="row links"><button class="link" data-act="adult">⚙️ For voksne (skjermtid)</button><button class="link" data-act="delete">Slett spiller</button></div>
   </div>`;
   updateHud();
   const setAge = v => {
@@ -240,11 +262,12 @@ SCREENS.home = () => {
     $$('.age-pill').forEach(x => x.classList.toggle('sel', +x.dataset.v === v));
     speak(`${ageLabel(v).replace('½', ' og et halvt')} år`);
   };
-  const act = a => {
-    if (a === 'math') go('math');
-    if (a === 'write') go('write');
+  const act = (a, v) => {
+    if (a === 'group') go('group', v);
+    if (ACTS[a]) go(a);
     if (a === 'coll') go('collection');
     if (a === 'back') go('profiles');
+    if (a === 'adult') ST.openAdult();
   };
   return {
     onAct(a, b) {
@@ -254,13 +277,14 @@ SCREENS.home = () => {
           db.profiles = db.profiles.filter(p => p !== P);
           db.current = null; P = null; persist(); go('profiles');
         }
-      } else act(a);
+      } else act(a, b.dataset.v);
     },
     onKey(e) {
       const k = e.key.toLowerCase();
-      if (k === '1' || k === 'm') act('math');
-      else if (k === '2' || k === 's') act('write');
-      else if (k === '3' || k === 'c') act('coll');
+      const gk = Object.keys(GROUPS)[+k - 1];
+      if (gk) act('group', gk);
+      else if (k === '4' || k === 'c') act('coll');
+      else if (HOTKEYS[k]) act(HOTKEYS[k]);
       else if (k === 'escape' || k === 'p') act('back');
       else if (k === '+' || k === '-') {
         const i = AGES.findIndex(a => a.age === P.age) + (k === '+' ? 1 : -1);
@@ -269,6 +293,43 @@ SCREENS.home = () => {
     },
   };
 };
+
+SCREENS.group = id => {
+  const g = GROUPS[id];
+  const acts = Object.entries(ACTS).filter(([, a]) => a.g === id);
+  app.innerHTML = `${hud()}<div class="screen home group scroll">
+    <h1 class="group-title"><span>${g.e}</span> ${g.n}</h1>
+    <div class="tiles">${acts.map(([aid, a], k) => `<button class="tile ${g.cls} t-${aid}" data-act="${aid}"><span class="tile-ico">${a.e}</span><b>${a.n}</b><small>${a.s}</small><kbd>${k + 1}</kbd></button>`).join('')}</div>
+  </div>`;
+  updateHud();
+  return {
+    onAct(a) { if (a === 'back') go('home'); else if (ACTS[a]) go(a); },
+    onKey(e) {
+      const k = e.key.toLowerCase();
+      if (k === 'escape') go('home');
+      else if (acts[+k - 1]) go(acts[+k - 1][0]);
+      else if (HOTKEYS[k]) go(HOTKEYS[k]);
+      else if (k === 'c') go('collection');
+    },
+  };
+};
+
+function summaryHTML(stars, text) {
+  return `<div class="summary"><h2>Runden er ferdig!</h2>
+    <div class="big-stars">${[1, 2, 3].map(k => `<span class="${k <= stars ? 'on' : ''}" style="--d:${k * 250}ms">⭐</span>`).join('')}</div>
+    <p>${text}</p>
+    <div class="row"><button class="btn ghost" data-act="back">Tilbake <kbd>Esc</kbd></button>
+    <button class="btn" data-act="again">Spill igjen <kbd>Enter</kbd></button></div></div>`;
+}
+
+const ctx = {
+  app, $, $$, esc, wait, pick, speak, sfx, burst, confetti, centerOf, floatText, PRAISE,
+  get P() { return P; }, hud, updateHud, grantXp, react, go, back, persist, avatarHTML, summaryHTML,
+};
+SCREENS.read = () => readScreen(ctx);
+SCREENS.shop = () => shopScreen(ctx);
+SCREENS.memory = () => memoryScreen(ctx);
+SCREENS.draw = () => drawScreen(ctx);
 
 // ───────────────────────── Matte ─────────────────────────
 SCREENS.math = () => {
@@ -440,7 +501,7 @@ SCREENS.math = () => {
     body.innerHTML = `<div class="summary"><h2>Runden er ferdig!</h2>
       <div class="big-stars">${[1, 2, 3].map(k => `<span class="${k <= stars ? 'on' : ''}" style="--d:${k * 250}ms">⭐</span>`).join('')}</div>
       <p>${firstTry} av ${ROUND} riktige på første forsøk</p>
-      <div class="row"><button class="btn ghost" data-act="back">Hjem <kbd>Esc</kbd></button>
+      <div class="row"><button class="btn ghost" data-act="back">Tilbake <kbd>Esc</kbd></button>
       <button class="btn" data-act="again">Spill igjen <kbd>Enter</kbd></button></div></div>`;
     $('.mic-area').style.visibility = 'hidden';
     heard.innerHTML = '';
@@ -466,13 +527,13 @@ SCREENS.math = () => {
   return {
     cleanup() { alive = false; stop(); },
     onAct(a) {
-      if (a === 'back') go('home');
+      if (a === 'back') back('math');
       if (a === 'again') go('math');
       if (a === 'repeat' && q && !busy) ask();
       if (a === 'mic' && q && !busy) { autoRetries = 0; listenNow(); }
     },
     onKey(e) {
-      if (e.key === 'Escape') return go('home');
+      if (e.key === 'Escape') return back('math');
       if (i >= ROUND && e.key === 'Enter') return go('math');
       if (busy || !q) return;
       // Skjult reserve for voksne: tast svaret + Enter
@@ -610,7 +671,7 @@ SCREENS.write = (mode = 'letters') => {
   return {
     cleanup() { clearTimeout(timer); tracer?.destroy(); },
     onAct(a, b) {
-      if (a === 'back') go('home');
+      if (a === 'back') back('write');
       if (a === 'mode') { mode = b.dataset.v; idx = 0; wi = 0; li = 0; render(); }
       if (a === 'prev') step(-1);
       if (a === 'next') step(1);
@@ -620,7 +681,7 @@ SCREENS.write = (mode = 'letters') => {
     },
     onKey(e) {
       const k = e.key;
-      if (k === 'Escape') return go('home');
+      if (k === 'Escape') return back('write');
       if (k === 'ArrowRight') return step(1);
       if (k === 'ArrowLeft') return step(-1);
       if (k === ' ') { e.preventDefault(); return sayIt(); }
@@ -699,5 +760,12 @@ SCREENS.collection = () => {
 if ('serviceWorker' in navigator && window.isSecureContext) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
+
+const ST = initScreenTime({
+  onLock() { if (P) go('home'); else go('profiles'); },
+  avatarHTML: () => (P ? avatarHTML(P, 'xl') : '😴'),
+  speak: t => speak(t),
+  toast: t => floatText(innerWidth / 2, 90, t, 'toast'),
+});
 
 go(P ? 'home' : 'profiles');
