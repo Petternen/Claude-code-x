@@ -85,6 +85,18 @@ function updateHud(fillFirst = false) {
   } else set();
 }
 
+/** Barnets store figur (nettbrett): 'listen' | 'happy' | 'sad' | 'dance', med snakkeboble. */
+function react(kind, text = '') {
+  const b = $('.buddy');
+  if (!b) return;
+  b.classList.remove('listen', 'happy', 'sad', 'dance');
+  void b.offsetWidth;
+  if (kind) b.classList.add(kind);
+  const bub = $('.bubble', b);
+  bub.textContent = text;
+  bub.classList.toggle('show', !!text);
+}
+
 function agePills(sel) {
   return AGES.map(a => `<button type="button" class="age-pill ${a.age === sel ? 'sel' : ''}" data-act="age" data-v="${a.age}">${a.label}<small>år</small></button>`).join('');
 }
@@ -108,6 +120,8 @@ async function grantXp(amount, anchor) {
     for (const l of lv) await levelUp(l);
     const av = $('.hud-av');
     if (av) av.innerHTML = avatarHTML(P, 'sm');
+    const big = $('.buddy-av');
+    if (big) { big.innerHTML = avatarHTML(P, 'xl'); react('dance', `Nivå ${P.level}!`); }
   }
 }
 
@@ -265,13 +279,18 @@ SCREENS.math = () => {
 
   app.innerHTML = `${hud()}<div class="screen math">
     <div class="progress">${'<i></i>'.repeat(ROUND)}</div>
-    <div class="q-card"><div class="q-body"></div></div>
-    <div class="mic-area">
-      <button class="icon-btn big" data-act="repeat" title="Hør igjen (mellomrom)" aria-label="Hør spørsmålet igjen">🔊</button>
-      <button class="mic" data-act="mic" aria-label="Snakk"><span class="mic-ico">🎤</span><span class="mic-ring"></span></button>
-      <div class="streak" aria-live="polite"></div>
+    <div class="math-body">
+      <div class="q-card"><div class="q-body"></div></div>
+      <aside class="side">
+        <div class="buddy" aria-hidden="true"><div class="bubble"></div><div class="buddy-av">${avatarHTML(P, 'xl')}</div></div>
+        <div class="mic-area">
+          <button class="icon-btn big" data-act="repeat" title="Hør igjen (mellomrom)" aria-label="Hør spørsmålet igjen">🔊</button>
+          <button class="mic" data-act="mic" aria-label="Snakk"><span class="mic-ico">🎤</span><span class="mic-ring"></span></button>
+          <div class="streak" aria-live="polite"></div>
+        </div>
+        <div class="heard" aria-live="polite"></div>
+      </aside>
     </div>
-    <div class="heard" aria-live="polite"></div>
     ${canListen ? '' : '<div class="notice">Denne nettleseren kan ikke høre tale. Bruk Chrome (Android) eller Safari (iPad). En voksen kan taste svaret og trykke Enter.</div>'}
   </div>`;
   updateHud();
@@ -313,6 +332,7 @@ SCREENS.math = () => {
     if (!canListen) { setMic('unsupported'); return; }
     let handled = false;
     setMic('listening');
+    react('listen');
     stopListen = startListening({
       onResult(alts, final) {
         if (handled) return;
@@ -360,6 +380,7 @@ SCREENS.math = () => {
     burst(x, y, { n: 30 });
     setMic('happy');
     const first = tries === 0;
+    const praise = pick(PRAISE);
     if (first) { firstTry++; streak++; } else streak = 0;
     $$('.progress i')[i].classList.add(first ? 'star' : 'ok');
     const xp = first ? 10 + Math.min(10, Math.max(0, streak - 2) * 2) : 5;
@@ -369,7 +390,9 @@ SCREENS.math = () => {
     } else $('.streak').innerHTML = '';
     i++;
     P.stats.math++;
-    const said = speak(streak >= 3 && streak % 3 === 0 ? `${streak} riktige på rad! Wow!` : pick(PRAISE));
+    const combo = streak >= 3 && streak % 3 === 0;
+    react(combo ? 'dance' : 'happy', combo ? `${streak} på rad!` : praise);
+    const said = speak(combo ? `${streak} riktige på rad! Wow!` : praise);
     await grantXp(xp, s);
     await said;
     await wait(500);
@@ -387,6 +410,7 @@ SCREENS.math = () => {
     s.classList.remove('wrong'); void s.offsetWidth; s.classList.add('wrong');
     sfx.wrong();
     setMic('speaking');
+    react('sad', tries >= 3 ? 'Neste gang!' : 'Prøv igjen!');
     if (tries >= 3) {
       await wait(600);
       s.textContent = q.answer;
@@ -420,6 +444,7 @@ SCREENS.math = () => {
       <button class="btn" data-act="again">Spill igjen <kbd>Enter</kbd></button></div></div>`;
     $('.mic-area').style.visibility = 'hidden';
     heard.innerHTML = '';
+    react('dance', stars === 3 ? 'Mattestjerne!' : 'Bra jobba!');
     sfx.levelUp();
     confetti(100);
     speak(stars === 3 ? 'Tre stjerner! Du er en mattestjerne!' : 'Bra jobba! Vil du spille igjen?');
@@ -480,19 +505,23 @@ SCREENS.write = (mode = 'letters') => {
         <kbd class="tab-kbd">Tab</kbd>
       </div>
       <div class="write-main">
-        <button class="icon-btn big nav" data-act="prev" aria-label="Forrige">‹</button>
         <div class="trace-card">
-          <div class="trace-head"></div>
           <svg class="trace" aria-label="Tegneflate"></svg>
-          <div class="trace-tools">
-            <button class="icon-btn" data-act="say" title="Hør (mellomrom)">🔊</button>
-            <button class="icon-btn" data-act="reset" title="Start på nytt (R)">↺</button>
-          </div>
+          <button class="icon-btn big nav prev" data-act="prev" aria-label="Forrige" title="Forrige (←)">‹</button>
+          <button class="icon-btn big nav next" data-act="next" aria-label="Neste" title="Neste (→)">›</button>
         </div>
-        <button class="icon-btn big nav" data-act="next" aria-label="Neste">›</button>
+        <aside class="write-side">
+          <div class="side-top">
+            <div class="trace-head"></div>
+            <div class="trace-tools">
+              <button class="icon-btn" data-act="say" title="Hør (mellomrom)" aria-label="Hør">🔊</button>
+              <button class="icon-btn" data-act="reset" title="Start på nytt (R)" aria-label="Start på nytt">↺</button>
+            </div>
+          </div>
+          <div class="strip m-${mode}">${items().map((c, k) =>
+            `<button class="chip ${P.traced[c] ? 'done' : ''}" data-act="jump" data-i="${k}">${esc(c)}</button>`).join('')}</div>
+        </aside>
       </div>
-      <div class="strip scroll-x">${items().map((c, k) =>
-        `<button class="chip ${P.traced[c] ? 'done' : ''}" data-act="jump" data-i="${k}">${esc(c)}</button>`).join('')}</div>
     </div>`;
     updateHud();
     tracer = new Tracer($('.trace'), {
@@ -520,7 +549,7 @@ SCREENS.write = (mode = 'letters') => {
     $$('.chip').forEach((c, k) => {
       const on = k === (mode === 'words' ? wi : idx);
       c.classList.toggle('now', on);
-      if (on) c.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+      if (on) c.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
     });
   }
 
