@@ -154,3 +154,35 @@ test('alle ikonknapper har tilgjengelig navn', async () => {
   }
   await page.ctx.close();
 });
+
+test('oppdatering: ny versjon på serveren vises ved neste åpning (ikke gammel lagret kopi)', async () => {
+  const page = await newPage(base, { profile: makeProfile() });
+  await page.evaluate(async () => { await navigator.serviceWorker.ready; });
+  await page.reload();
+  await page.waitForFunction(() => !!navigator.serviceWorker.controller);
+  // «Publiser» en ny versjon av index.html
+  await page.ctx.route(/index\.html$|\/$/, async r => {
+    const res = await r.fetch();
+    r.fulfill({ response: res, body: (await res.text()).replace('<title>Stjerneskolen</title>', '<title>Stjerneskolen NY</title>') });
+  });
+  await page.reload();
+  assert.equal(await page.title(), 'Stjerneskolen NY', 'ny versjon allerede ved første omlasting');
+  await page.ctx.unroute(/index\.html$|\/$/);
+  noErrors(page);
+  await page.ctx.close();
+});
+
+test('oppdatering: midt i en aktivitet lastes ikke siden på nytt før barnet er tilbake på menyen', async () => {
+  const page = await newPage(base, { profile: makeProfile() });
+  await page.evaluate(async () => { await navigator.serviceWorker.ready; });
+  await page.reload();
+  await page.waitForFunction(() => !!navigator.serviceWorker.controller);
+  await page.keyboard.press('t');
+  await page.waitForSelector('canvas.paint');
+  await page.evaluate(() => { window.__marker = 1; navigator.serviceWorker.dispatchEvent(new Event('controllerchange')); });
+  await page.waitForTimeout(300);
+  assert.equal(await page.evaluate(() => window.__marker), 1, 'ingen omlasting midt i tegningen');
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => window.__marker === undefined, null, { timeout: 5000 });
+  await page.ctx.close();
+});
