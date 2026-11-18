@@ -45,7 +45,12 @@ const HOTKEYS = Object.fromEntries(Object.entries(ACTS).map(([id, a]) => [a.key,
 const back = act => go('group', ACTS[act].g);
 
 // ───────────────────────── Ruting og input ─────────────────────────
+let curName = null, pendingReload = false;
+const CALM = ['home', 'group', 'profiles'];
 function go(name, ...args) {
+  // Ny versjon venter: last på nytt først når barnet er tilbake på en meny
+  if (pendingReload && CALM.includes(name)) { location.reload(); return; }
+  curName = name;
   try { screen.cleanup?.(); } catch (e) { console.error(e); }
   stopSpeaking();
   window.scrollTo(0, 0);
@@ -758,7 +763,16 @@ SCREENS.collection = () => {
 })();
 
 if ('serviceWorker' in navigator && window.isSecureContext) {
-  navigator.serviceWorker.register('sw.js').catch(() => {});
+  // Ny versjon tatt i bruk → last siden på nytt én gang (ikke ved aller første installasjon)
+  const hadController = !!navigator.serviceWorker.controller;
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadController || reloaded) return;
+    reloaded = true;
+    if (CALM.includes(curName) && !ST.isLocked()) location.reload();
+    else pendingReload = true; // midt i en aktivitet: vent til barnet går tilbake
+  });
+  navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(() => {});
 }
 
 const ST = initScreenTime({

@@ -60,10 +60,10 @@ test('lesing: to feil → leser sammen (bokstav for bokstav), riktig etterpå gi
   await listening(page);
   const q = await page.evaluate(() => window.__q);
   const before = await xpOf(page);
-  await page.evaluate(() => window.__say('banan banan'));
+  await page.evaluate(() => window.__say('qwqw xzxz'));
   await page.waitForSelector('.read-word.shake');
   await listening(page);
-  await page.evaluate(() => window.__say('tog tog tog'));
+  await page.evaluate(() => window.__say('zqzq zqzq'));
   await page.waitForSelector('.rl.hl'); // bokstav for bokstav
   await listening(page);
   assert.ok(await page.$('.read-pic .gift'), 'bildet fortsatt skjult');
